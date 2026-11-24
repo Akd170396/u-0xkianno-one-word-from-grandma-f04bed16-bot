@@ -60,6 +60,30 @@ def score(word):
     return total
 
 
+def validate_word(word, out_path):
+    """Validate the chosen word before writing it out.
+
+    The gate expects exactly one word: non-empty, no whitespace at
+    all, and a sane length. Reject anything else loudly instead of
+    writing a malformed entry to ``out_path``.
+    """
+    if not word:
+        raise ValueError(
+            "Chosen word is empty; cannot write %s." % out_path
+        )
+    if any(ch.isspace() for ch in word):
+        raise ValueError(
+            "Chosen word for %s must be a single word with no "
+            "whitespace, got %r." % (out_path, word)
+        )
+    if not 2 <= len(word) <= 20:
+        raise ValueError(
+            "Chosen word for %s must be 2-20 characters long, "
+            "got %d: %r." % (out_path, len(word), word)
+        )
+    return word
+
+
 def pick_word():
     """Pick the best word. Ties break toward the shorter word, then
     alphabetically, so the result is fully deterministic."""
@@ -74,14 +98,16 @@ def pick_word():
 
 
 def main():
-    word = pick_word()
+    out_path = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
+    out_file = os.path.join(out_path, "entry.txt")
+    word = validate_word(pick_word(), out_file)
     # The gate allows 1 to 30 UTF-8 characters, not only whitespace.
     # Write the word alone, no trailing newline, so the file holds
     # exactly one word and nothing else.
     assert 1 <= len(word.encode("utf-8")) <= 30
     assert word.strip() == word and " " not in word
-    os.makedirs("/output", exist_ok=True)
-    with open("/output/entry.txt", "w", encoding="utf-8", newline="") as f:
+    os.makedirs(out_path, exist_ok=True)
+    with open(out_file, "w", encoding="utf-8", newline="") as f:
         f.write(word)
 
 
